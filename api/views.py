@@ -65,7 +65,7 @@ def info(request):
 
 
 def download(request):
-    url = request.GET.get("url", "")
+    url = request.GET.get("url", "") #3
     if not url:
         return JsonResponse({"ok": False, "message": "Missing URL"})
 
