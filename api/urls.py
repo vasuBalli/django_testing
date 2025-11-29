@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import info, download
+from . import views
 
 urlpatterns = [
-    path("info/", info),
-    path("download/", download),
+    path("api/info/", views.info),
+    path("api/download/", views.download),
+    path("api/health/", views.health),
 ]
