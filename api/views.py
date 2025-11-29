@@ -36,7 +36,7 @@ def get_ydl_opts():
 # /api/info
 # ------------------------------------------------------
 @csrf_exempt
-@require_POST
+#@require_POST
 def info(request):
     try:
         body = json.loads(request.body)
