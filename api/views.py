@@ -80,54 +80,48 @@ def info(request):
 # ------------------------------------------------------
 @require_GET
 def download(request):
+    url = request.GET.get("url", "").strip()
+    if not url:
+        return JsonResponse({"ok": False, "message": "Missing URL"})
+
     try:
-        url = request.GET.get("url", "").strip()
+        # Tell yt-dlp to merge best video+bestaudio into MP4
+        ydl_opts = {
+            "quiet": True,
+            "merge_output_format": "mp4",
+            "format": "bestvideo+bestaudio/best",
+            "outtmpl": "/tmp/%(id)s.%(ext)s",
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0",
+                "Referer": "https://www.instagram.com/"
+            },
+            "cookiefile": "/home/ubuntu/insta_cookies.txt"
+        }
 
-        if not url:
-            return JsonResponse({"ok": False, "message": "Missing URL"})
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-        # Extract video info
-        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
-            data = ydl.extract_info(url, download=False)
+        filename = f"/tmp/{info['id']}.mp4"
 
-        # Pick entry
-        entry = data["entries"][0] if "entries" in data else data
+        # Stream final merged MP4
+        if not os.path.exists(filename):
+            return JsonResponse({"ok": False, "message": "Download file missing"})
 
-        # Always pick best downloadable MP4
-        formats = entry.get("formats") or []
-        best = None
+        def file_stream():
+            with open(filename, "rb") as f:
+                while True:
+                    chunk = f.read(1024 * 64)
+                    if not chunk:
+                        break
+                    yield chunk
 
-        for f in formats:
-            if f.get("ext") == "mp4" and f.get("url"):
-                best = f["url"]
-
-        if not best:
-            return JsonResponse({
-                "ok": False,
-                "message": "Unable to extract MP4 download URL"
-            })
-
-        video_url = best
-        filename = (entry.get("title") or "instagram_video").replace(" ", "_") + ".mp4"
-
-        # Stream file
-        stream = requests.get(video_url, stream=True, timeout=20, headers={
-            "User-Agent": "Mozilla/5.0",
-            "Referer": "https://www.instagram.com/"
-        })
-
-        if stream.status_code != 200:
-            return JsonResponse({"ok": False, "message": f"CDN error: {stream.status_code}"})
-
-        response = StreamingHttpResponse(
-            stream.iter_content(chunk_size=1024 * 64),
-            content_type="video/mp4"
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response = StreamingHttpResponse(file_stream(), content_type="video/mp4")
+        response["Content-Disposition"] = f'attachment; filename=\"{info.get('title', 'video')}.mp4\"'
         return response
 
     except Exception as e:
-        return JsonResponse({"ok": False, "message": f"Download failed: {str(e)}"})
+        return JsonResponse({"ok": False, "message": f"Download failed: {e}"})
+
 
 
 
