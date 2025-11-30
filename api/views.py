@@ -86,23 +86,38 @@ def download(request):
         if not url:
             return JsonResponse({"ok": False, "message": "Missing URL"})
 
-        # Extract the REAL CDN video URL
+        # Extract video info
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             data = ydl.extract_info(url, download=False)
 
+        # Pick entry
         entry = data["entries"][0] if "entries" in data else data
 
-        video_url = entry["url"]
+        # Always pick best downloadable MP4
+        formats = entry.get("formats") or []
+        best = None
+
+        for f in formats:
+            if f.get("ext") == "mp4" and f.get("url"):
+                best = f["url"]
+
+        if not best:
+            return JsonResponse({
+                "ok": False,
+                "message": "Unable to extract MP4 download URL"
+            })
+
+        video_url = best
         filename = (entry.get("title") or "instagram_video").replace(" ", "_") + ".mp4"
 
-        # Stream from Instagram CDN
+        # Stream file
         stream = requests.get(video_url, stream=True, timeout=20, headers={
             "User-Agent": "Mozilla/5.0",
             "Referer": "https://www.instagram.com/"
         })
 
         if stream.status_code != 200:
-            return JsonResponse({"ok": False, "message": "CDN blocked: " + str(stream.status_code)})
+            return JsonResponse({"ok": False, "message": f"CDN error: {stream.status_code}"})
 
         response = StreamingHttpResponse(
             stream.iter_content(chunk_size=1024 * 64),
@@ -113,6 +128,7 @@ def download(request):
 
     except Exception as e:
         return JsonResponse({"ok": False, "message": f"Download failed: {str(e)}"})
+
 
 
 # ------------------------------------------------------
