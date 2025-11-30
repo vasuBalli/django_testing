@@ -85,52 +85,43 @@ def download(request):
         return JsonResponse({"ok": False, "message": "Missing URL"})
 
     try:
-        with yt_dlp.YoutubeDL({
+        temp_path = "/tmp/%(id)s.%(ext)s"
+
+        ydl_opts = {
             "quiet": True,
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4",
+            "outtmpl": temp_path,
             "cookiefile": "/home/ubuntu/insta_cookies.txt",
+            "ffmpeg_location": "auto",  # <-- USE INTERNAL MUXER, NOT SYSTEM FFMPEG
             "http_headers": {
                 "User-Agent": "Mozilla/5.0",
                 "Referer": "https://www.instagram.com/"
             }
-        }) as ydl:
-            info = ydl.extract_info(url, download=False)
+        }
 
-        entry = info["entries"][0] if "entries" in info else info
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-        formats = entry.get("formats") or []
+        # Final merged output file
+        final_file = f"/tmp/{info['id']}.mp4"
 
-        # 🟢 Pick ONLY formats that have BOTH audio and video
-        progressive_formats = [
-            f for f in formats
-            if f.get("acodec") not in ("none", None) and 
-               f.get("vcodec") not in ("none", None) and
-               f.get("ext") == "mp4"
-        ]
+        if not os.path.exists(final_file):
+            return JsonResponse({"ok": False, "message": "Failed to combine audio/video"})
 
-        if not progressive_formats:
-            return JsonResponse({"ok": False, "message": "No MP4 with audio found"})
+        def generate():
+            with open(final_file, "rb") as f:
+                for chunk in iter(lambda: f.read(1024 * 64), b""):
+                    yield chunk
 
-        # Pick best resolution progressive MP4
-        best = sorted(progressive_formats, key=lambda x: x.get("height", 0), reverse=True)[0]
+        response = StreamingHttpResponse(generate(), content_type="video/mp4")
+        response["Content-Disposition"] = f'attachment; filename=\"{info.get('title','video')}.mp4\"'
 
-        video_url = best["url"]
-        filename = (entry.get("title") or "instagram_video").replace(" ", "_") + ".mp4"
-
-        # Stream to client
-        stream = requests.get(video_url, stream=True, timeout=20)
-
-        if stream.status_code != 200:
-            return JsonResponse({"ok": False, "message": f"CDN error: {stream.status_code}"})
-
-        resp = StreamingHttpResponse(
-            stream.iter_content(chunk_size=1024 * 64),
-            content_type="video/mp4"
-        )
-        resp["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return resp
+        return response
 
     except Exception as e:
         return JsonResponse({"ok": False, "message": f"Download failed: {e}"})
+
 
 
 
