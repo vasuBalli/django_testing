@@ -91,14 +91,15 @@ def download(request):
             "quiet": True,
             "format": "bestvideo+bestaudio/best",
             "merge_output_format": "mp4",
-            "outtmpl": temp_path,
+            "ffmpeg_location": "/usr/bin",   # <---- FIX
+            "outtmpl": "/tmp/%(id)s.%(ext)s",
             "cookiefile": "/home/ubuntu/insta_cookies.txt",
-            "ffmpeg_location": "auto",  # <-- USE INTERNAL MUXER, NOT SYSTEM FFMPEG
             "http_headers": {
                 "User-Agent": "Mozilla/5.0",
                 "Referer": "https://www.instagram.com/"
             }
         }
+
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
