@@ -91,7 +91,7 @@ def download(request):
             "quiet": True,
             "format": "bestvideo+bestaudio/best",
             "merge_output_format": "mp4",
-            "ffmpeg_location": "/usr/bin",   # <---- FIX
+            "ffmpeg_location": "/usr/bin",   # <---- 
             "outtmpl": "/tmp/%(id)s.%(ext)s",
             "cookiefile": "/home/ubuntu/insta_cookies.txt",
             "http_headers": {
