@@ -1,0 +1,63 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block title %}Traffic Dashboard{% endblock %}
+
+{% block content %}
+<h1>Traffic Dashboard</h1>
+
+<div style="display:flex; gap:20px; margin-bottom:20px;">
+  <div style="padding:10px; border:1px solid #ddd;">
+    <h3>Total (24h)</h3>
+    <p style="font-size:24px;">{{ total_24h }}</p>
+  </div>
+  <div style="padding:10px; border:1px solid #ddd;">
+    <h3>Avg response (ms)</h3>
+    <p style="font-size:24px;">{{ avg_resp_24h }}</p>
+  </div>
+  <div style="padding:10px; border:1px solid #ddd;">
+    <h3>Errors (5xx, 24h)</h3>
+    <p style="font-size:24px;">{{ errors_24h }}</p>
+  </div>
+</div>
+
+<canvas id="trafficChart" width="900" height="300"></canvas>
+
+<h2>Top endpoints (24h)</h2>
+<table class="deletable">
+  <thead><tr><th>Path</th><th>Requests</th></tr></thead>
+  <tbody>
+    {% for p in top_paths %}
+      <tr><td style="max-width:800px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.path }}</td><td>{{ p.count }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('trafficChart').getContext('2d');
+const series = {{ series|safe }};
+const labels = series.map(s => s.time);
+const data = series.map(s => s.count);
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Requests per hour (24h)',
+      data,
+      fill: true,
+      tension: 0.2,
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { display: true },
+      y: { display: true, beginAtZero: true }
+    }
+  }
+});
+</script>
+{% endblock %}

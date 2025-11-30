@@ -1,0 +1,55 @@
+name: Deploy Django to EC2
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 host to known_hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+
+          cd /home/ubuntu/django_testing 
+
+          echo "🔄 Pulling latest changes..."
+          git pull origin main
+
+          echo "📦 Creating venv if missing..."
+          [ ! -d "/home/ubuntu/venv" ] && python3 -m venv /home/ubuntu/venv
+
+          echo "📦 Installing dependencies..."
+          source /home/ubuntu/venv/bin/activate
+          pip install -r requirements.txt
+
+          echo "⚙️ Running migrations..."
+          python manage.py makemigrations --noinput
+          python manage.py migrate --noinput
+
+          echo "🧹 Collecting static files..."
+          python manage.py collectstatic --noinput
+
+          echo "🔄 Restarting Gunicorn..."
+          sudo systemctl restart django
+
+          echo "🔄 Restarting Nginx..."
+          sudo systemctl restart nginx
+
+          echo "🚀 Deployment successful!"
+          EOF

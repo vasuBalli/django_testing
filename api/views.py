@@ -6,6 +6,12 @@ from urllib.parse import quote
 import json
 import requests
 import os
+from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Count, Avg, Sum
+from django.utils import timezone
+from datetime import timedelta
+from .models import TrafficLog
 
 # Path to your cookie file
 COOKIE_FILE = "/home/ubuntu/insta_cookies.txt"
@@ -134,3 +140,52 @@ def download(request):
 @require_GET
 def health(request):
     return JsonResponse({"ok": True, "status": "running"})
+
+
+
+# @staff_member_required
+def admin_traffic_dashboard(request):
+    # time window
+    now = timezone.now()
+    last_24h = now - timedelta(hours=24)
+    last_7d = now - timedelta(days=7)
+
+    total_24h = TrafficLog.objects.filter(timestamp__gte=last_24h).count()
+    avg_resp_24h = TrafficLog.objects.filter(timestamp__gte=last_24h).aggregate(Avg("response_time_ms"))["response_time_ms__avg"] or 0
+    errors_24h = TrafficLog.objects.filter(timestamp__gte=last_24h, status_code__gte=500).count()
+
+    top_paths = list(
+        TrafficLog.objects.filter(timestamp__gte=last_24h)
+        .values("path")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:10]
+    )
+
+    # simple timeseries per hour for last 24h
+    series = []
+    for i in range(24):
+        t0 = now - timedelta(hours=23-i)
+        t1 = t0 + timedelta(hours=1)
+        cnt = TrafficLog.objects.filter(timestamp__gte=t0, timestamp__lt=t1).count()
+        series.append({"time": t0.strftime("%Y-%m-%d %H:%M"), "count": cnt})
+
+    context = {
+        "total_24h": total_24h,
+        "avg_resp_24h": round(avg_resp_24h or 0, 2),
+        "errors_24h": errors_24h,
+        "top_paths": top_paths,
+        "series": series,
+    }
+    return render(request, "downloader/admin_traffic_dashboard.html", context)
+
+# JSON endpoint for chart data (optional)
+# @staff_member_required
+def admin_traffic_data(request):
+    now = timezone.now()
+    series = []
+    for i in range(24):
+        t0 = now - timedelta(hours=23-i)
+        t1 = t0 + timedelta(hours=1)
+        cnt = TrafficLog.objects.filter(timestamp__gte=t0, timestamp__lt=t1).count()
+        series.append({"time": t0.strftime("%Y-%m-%d %H:%M"), "count": cnt})
+    return JsonResponse({"series": series})
