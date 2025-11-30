@@ -35,6 +35,9 @@ def get_ydl_opts():
 # ------------------------------------------------------
 # /api/info
 # ------------------------------------------------------
+def info(request):
+    return JsonResponse({"ok": True})
+
 @csrf_exempt
 # @require_POST
 def info(request):
