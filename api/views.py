@@ -150,7 +150,8 @@ def admin_traffic_dashboard(request):
     last_24h = now - timedelta(hours=24)
     last_7d = now - timedelta(days=7)
 
-    total_24h = TrafficLog.objects.filter(timestamp__gte=last_24h).count()
+    total_24h = TrafficLog.objects.filter(timestamp__gte=last_24h).values("ip").distinct().count()
+
     avg_resp_24h = TrafficLog.objects.filter(timestamp__gte=last_24h).aggregate(Avg("response_time_ms"))["response_time_ms__avg"] or 0
     errors_24h = TrafficLog.objects.filter(timestamp__gte=last_24h, status_code__gte=500).count()
 
@@ -166,7 +167,8 @@ def admin_traffic_dashboard(request):
     for i in range(24):
         t0 = now - timedelta(hours=23-i)
         t1 = t0 + timedelta(hours=1)
-        cnt = TrafficLog.objects.filter(timestamp__gte=t0, timestamp__lt=t1).count()
+        cnt = TrafficLog.objects.filter(timestamp__gte=t0, timestamp__lt=t1).values("ip").distinct().count()
+
         series.append({"time": t0.strftime("%Y-%m-%d %H:%M"), "count": cnt})
 
     context = {
