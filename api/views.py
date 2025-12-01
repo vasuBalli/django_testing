@@ -12,6 +12,7 @@ from django.db.models import Count, Avg, Sum
 from django.utils import timezone
 from datetime import timedelta
 from .models import TrafficLog
+from .models import NginxTraffic
 
 # Path to your cookie file
 COOKIE_FILE = "/home/ubuntu/insta_cookies.txt"
@@ -142,6 +143,49 @@ def health(request):
     return JsonResponse({"ok": True, "status": "running"})
 
 
+
+def nginx_traffic_dashboard(request):
+    now = timezone.now()
+    last_24h = now - timedelta(hours=24)
+
+    # UNIQUE IP COUNT
+    unique_ips = (
+        NginxTraffic.objects.filter(timestamp__gte=last_24h)
+        .values("ip")
+        .distinct()
+        .count()
+    )
+
+    # HOURLY TRAFFIC
+    hourly_data = []
+    for i in range(24):
+        start = now - timedelta(hours=23 - i)
+        end = start + timedelta(hours=1)
+        count = (
+            NginxTraffic.objects.filter(timestamp__gte=start, timestamp__lt=end)
+            .values("ip")
+            .distinct()
+            .count()
+        )
+        hourly_data.append({"hour": start.strftime("%H:%M"), "count": count})
+
+    # TOP PAGES
+    top_pages = (
+        NginxTraffic.objects.filter(timestamp__gte=last_24h)
+        .values("path")
+        .annotate(unique_visitors=Count("ip", distinct=True))
+        .order_by("-unique_visitors")[:10]
+    )
+
+    return render(
+        request,
+        "downloader/nginx_traffic_dashboard.html",
+        {
+            "unique_ips": unique_ips,
+            "hourly_data": hourly_data,
+            "top_pages": top_pages,
+        },
+    )
 
 # @staff_member_required
 def admin_traffic_dashboard(request):

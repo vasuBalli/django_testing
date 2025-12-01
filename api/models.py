@@ -22,3 +22,23 @@ class TrafficLog(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} {self.ip} {self.method} {self.path} {self.status_code}"
+    
+
+class NginxTraffic(models.Model):
+    timestamp = models.DateTimeField(db_index=True)
+    ip = models.GenericIPAddressField(db_index=True)
+    method = models.CharField(max_length=10)
+    path = models.CharField(max_length=512, db_index=True)
+    status_code = models.PositiveSmallIntegerField()
+    bytes_sent = models.BigIntegerField(null=True)
+    user_agent = models.TextField(blank=True)
+    referer = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp']),
+            models.Index(fields=['ip']),
+            models.Index(fields=['path']),
+        ]
+

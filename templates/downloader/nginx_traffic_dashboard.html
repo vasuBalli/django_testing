@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h1>Real Traffic Analytics (Nginx)</h1>
+
+<h3>Unique Visitors (24h): {{ unique_ips }}</h3>
+
+<canvas id="chart" width="800" height="300"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const labels = {{ hourly_data|safe }}.map(x => x.hour);
+const values = {{ hourly_data|safe }}.map(x => x.count);
+
+new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: "Unique Visitors per Hour",
+            data: values,
+            borderWidth: 2,
+            tension: 0.2
+        }]
+    }
+});
+</script>
+
+<h2>Top Pages (24h)</h2>
+
+<table>
+    <tr><th>Path</th><th>Unique Visitors</th></tr>
+    {% for p in top_pages %}
+    <tr>
+        <td>{{ p.path }}</td>
+        <td>{{ p.unique_visitors }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
