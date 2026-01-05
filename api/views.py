@@ -52,9 +52,9 @@ def testing(request):
 def info(request):
     logging.info("Info endpoint hit")
     try:
-        logging.info(f"Received request: {request.GET.get("url")}")
+        # logging.info(f"Received request: {request.GET.get("url")}")
        
-        url = request.GET.get("url").strip()
+        url = request.POST["url"].strip()
         logging.info(f"Received URL for info: {url}")
         if not url:
             return JsonResponse({"ok": False, "message": "Missing URL"})
