@@ -52,7 +52,7 @@ def testing(request):
 def info(request):
     logging.info("Info endpoint hit")
     try:
-        logging.info(f"Received request: {request}")
+        logging.info(f"Received request: {request.get("url","")}")
         body = json.loads(request.body)
         logging.info(f"Request body: {body}")
         url = body.get("url", "").strip()
