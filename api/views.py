@@ -13,6 +13,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import TrafficLog
 from .models import NginxTraffic
+import logging
 
 # Path to your cookie file
 COOKIE_FILE = "/home/ubuntu/insta_cookies.txt"
@@ -49,16 +50,18 @@ def testing(request):
 # @require_POST
 def info(request):
     try:
+        logging.info(f"Received request: {request.body}")
         body = json.loads(request.body)
+        logging.info(f"Request body: {body}")
         url = body.get("url", "").strip()
-
+        logging.info(f"Received URL for info: {url}")
         if not url:
             return JsonResponse({"ok": False, "message": "Missing URL"})
 
         # Extract metadata (without download)
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             data = ydl.extract_info(url, download=False)
-
+        logging.info(f"Extracted data: {data}")
         # If it's a carousel, pick first video
         entry = data["entries"][0] if "entries" in data else data
 
