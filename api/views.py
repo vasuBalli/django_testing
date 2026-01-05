@@ -44,11 +44,13 @@ def get_ydl_opts():
 # /api/info
 # ------------------------------------------------------
 def testing(request):
+    logging.info("Testing endpoint hit")
     return JsonResponse({"ok": True})
 
 @csrf_exempt
 # @require_POST
 def info(request):
+    logging.info("Info endpoint hit")
     try:
         logging.info(f"Received request: {request.body}")
         body = json.loads(request.body)
