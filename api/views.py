@@ -18,7 +18,7 @@ import logging
 # Path to your cookie file
 COOKIE_FILE = "/home/ubuntu/insta_cookies.txt"
 
-
+logging.basicConfig(level=logging.INFO)
 # ------------------------------------------------------
 # yt-dlp options
 # ------------------------------------------------------
@@ -87,9 +87,7 @@ def info(request):
         return JsonResponse({"ok": False, "message": str(e)})
 
 
-# ------------------------------------------------------
-# /api/download
-# ------------------------------------------------------
+
 @require_GET
 def download(request):
     url = request.GET.get("url", "").strip()
