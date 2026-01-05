@@ -84,6 +84,7 @@ def info(request):
         })
 
     except Exception as e:
+        logging.info(f"Error in info endpoint: {e}")
         return JsonResponse({"ok": False, "message": str(e)})
 
 
