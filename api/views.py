@@ -53,10 +53,9 @@ def info(request):
     logging.info("Info endpoint hit")
     try:
         # logging.info(f"Received request: {request.GET.get("url")}")
-        logging.info(f"Request method: {request.method}")  
-        logging.info(f"Request body: {request.POST}") 
+        
         logging.info(request.body)
-        url = request.POST["url"].strip()
+        url = json.loads(request.body).get("url", "").strip()
         logging.info(f"Received URL for info: {url}")
         if not url:
             return JsonResponse({"ok": False, "message": "Missing URL"})
