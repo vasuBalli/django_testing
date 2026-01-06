@@ -16,7 +16,7 @@ from .models import NginxTraffic
 import logging
 
 # Path to your cookie file
-COOKIE_FILE = "/home/ubuntu/insta_cookies.txt"
+COOKIE_FILE = "/home/ubuntu/cookies.txt"
 
 logging.basicConfig(level=logging.INFO)
 # ------------------------------------------------------
@@ -104,7 +104,7 @@ def download(request):
             "merge_output_format": "mp4",
             "ffmpeg_location": "/usr/bin",   # <---- 
             "outtmpl": "/tmp/%(id)s.%(ext)s",
-            "cookiefile": "/home/ubuntu/insta_cookies.txt",
+            "cookiefile": "/home/ubuntu/cookies.txt",
             "http_headers": {
                 "User-Agent": "Mozilla/5.0",
                 "Referer": "https://www.instagram.com/"
